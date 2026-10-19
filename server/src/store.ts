@@ -16,6 +16,8 @@ export interface Room {
   status: RoomStatus;
   /** 게임 중일 때 game:end 예약 타이머 */
   endTimer: NodeJS.Timeout | null;
+  /** 게임 중일 때 카운트다운이 끝나는 서버 시각(ms) */
+  startAt: number;
 }
 
 /** code → Room */

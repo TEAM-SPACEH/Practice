@@ -12,7 +12,7 @@ export function registerRoomHandlers(io: IO, socket: GameSocket): void {
 
     leaveRoom(io, socket); // 이미 다른 방에 있으면 먼저 나감
     const code = newRoomCode();
-    rooms.set(code, { code, players: [], status: 'waiting', endTimer: null });
+    rooms.set(code, { code, players: [], status: 'waiting', endTimer: null, startAt: 0 });
     joinRoom(io, socket, code, name);
     console.log(`[room] ${code} created by ${name}`);
   });
@@ -58,6 +58,7 @@ function leaveRoom(io: IO, socket: GameSocket): void {
   const room = getRoomOf(socket.id);
   if (!room) return;
 
+  const leaver = room.players.find((p) => p.id === socket.id);
   room.players = room.players.filter((p) => p.id !== socket.id);
   roomOf.delete(socket.id);
   socket.leave(room.code);
@@ -71,7 +72,7 @@ function leaveRoom(io: IO, socket: GameSocket): void {
   }
 
   if (room.status === 'playing') {
-    endGame(io, room, 'opponent-left'); // 안에서 room:state 도 보냄
+    endGame(io, room, 'opponent-left', leaver); // 안에서 room:state 도 보냄
   } else {
     for (const p of room.players) p.ready = false;
     io.to(room.code).emit('room:state', toRoomState(room));

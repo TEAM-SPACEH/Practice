@@ -1,8 +1,8 @@
 // 담당: F (F-13 게임 진행)
-import { COUNTDOWN_MS, DURATION_MS, END_GRACE_MS, MAX_PLAYERS } from '@apple/shared';
+import { CELL_COUNT, COUNTDOWN_MS, DURATION_MS, END_GRACE_MS, MAX_PLAYERS } from '@apple/shared';
 import type { GameEndPayload } from '@apple/shared';
 import type { IO, GameSocket } from './types';
-import { getRoomOf, toRoomState, type Room } from './store';
+import { getRoomOf, toRoomState, type Player, type Room } from './store';
 
 /** player:ready / score:update 처리, game:start / opponent:score / game:end 전송 */
 export function registerGameHandlers(io: IO, socket: GameSocket): void {
@@ -24,10 +24,15 @@ export function registerGameHandlers(io: IO, socket: GameSocket): void {
     const room = getRoomOf(socket.id);
     if (!room || room.status !== 'playing') return;
     const me = room.players.find((p) => p.id === socket.id);
-    if (!me || typeof score !== 'number') return;
+    if (!me || Date.now() < room.startAt) return; // 카운트다운 중 입력 무시
+    // 치트 방지는 안 하지만, 깨진 값이 상대 화면/결과를 망가뜨리지 않게 형식만 확인
+    if (!Number.isInteger(score) || score < 0 || score > CELL_COUNT) return;
+    const safeCleared = Array.isArray(cleared)
+      ? cleared.filter((i) => Number.isInteger(i) && i >= 0 && i < CELL_COUNT)
+      : [];
 
-    me.score = score; // 점수는 클라이언트를 믿는다 (SPEC 범위 밖: 치트 방지)
-    socket.to(room.code).emit('opponent:score', { score, cleared: Array.isArray(cleared) ? cleared : [] });
+    me.score = score;
+    socket.to(room.code).emit('opponent:score', { score, cleared: safeCleared });
   });
 }
 
@@ -37,6 +42,7 @@ function startGame(io: IO, room: Room): void {
 
   const seed = Math.floor(Math.random() * 2 ** 31);
   const startAt = Date.now() + COUNTDOWN_MS;
+  room.startAt = startAt;
   io.to(room.code).emit('game:start', { seed, startAt, durationMs: DURATION_MS });
   console.log(`[game] ${room.code} start seed=${seed}`);
 
@@ -45,16 +51,17 @@ function startGame(io: IO, room: Room): void {
 }
 
 /**
- * 게임 종료. timeup 이면 점수 비교, opponent-left 면 남은 사람 승리.
+ * 게임 종료. timeup 이면 점수 비교, opponent-left 면 남은 사람 승리 (leaver = 이미 방에서 빠진 사람).
  * 끝나면 대기 상태로 되돌려서 다시 "준비"를 누르면 재대결 가능 (F-15).
  */
-export function endGame(io: IO, room: Room, reason: GameEndPayload['reason']): void {
+export function endGame(io: IO, room: Room, reason: GameEndPayload['reason'], leaver?: Player): void {
   if (room.status !== 'playing') return;
   if (room.endTimer) clearTimeout(room.endTimer);
   room.endTimer = null;
 
   const scores: Record<string, number> = {};
   for (const p of room.players) scores[p.id] = p.score;
+  if (leaver) scores[leaver.id] = leaver.score; // 나간 사람 점수도 결과에 포함
 
   let winnerId: string | null = null;
   if (reason === 'opponent-left') {
