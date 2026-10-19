@@ -2,6 +2,7 @@
 import { MAX_PLAYERS } from '@apple/shared';
 import type { IO, GameSocket } from './types';
 import { rooms, roomOf, getRoomOf, toRoomState, newRoomCode, type Player } from './store';
+import { endGame } from './game';
 
 /** room:create / room:join / room:leave / disconnect 처리 */
 export function registerRoomHandlers(io: IO, socket: GameSocket): void {
@@ -69,9 +70,12 @@ function leaveRoom(io: IO, socket: GameSocket): void {
     return;
   }
 
-  // TODO(F-13): 게임 중이면 남은 사람 승리로 game:end
-  for (const p of room.players) p.ready = false;
-  io.to(room.code).emit('room:state', toRoomState(room));
+  if (room.status === 'playing') {
+    endGame(io, room, 'opponent-left'); // 안에서 room:state 도 보냄
+  } else {
+    for (const p of room.players) p.ready = false;
+    io.to(room.code).emit('room:state', toRoomState(room));
+  }
 }
 
 function cleanNickname(nickname: unknown): string {
