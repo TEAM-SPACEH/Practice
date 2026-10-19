@@ -10,7 +10,7 @@ export function registerGameHandlers(io: IO, socket: GameSocket): void {
     const room = getRoomOf(socket.id);
     if (!room || room.status !== 'waiting') return;
     const me = room.players.find((p) => p.id === socket.id);
-    if (!me) return;
+    if (!me || me.ready) return; // 중복 준비 무시
 
     me.ready = true;
     io.to(room.code).emit('room:state', toRoomState(room));
@@ -46,7 +46,7 @@ function startGame(io: IO, room: Room): void {
   io.to(room.code).emit('game:start', { seed, startAt, durationMs: DURATION_MS });
   console.log(`[game] ${room.code} start seed=${seed}`);
 
-  const delay = startAt - Date.now() + DURATION_MS + END_GRACE_MS;
+  const delay = Math.max(0, startAt - Date.now()) + DURATION_MS + END_GRACE_MS;
   room.endTimer = setTimeout(() => endGame(io, room, 'timeup'), delay);
 }
 
