@@ -689,3 +689,22 @@ body {
 .cell--empty {
   background: transparent;
 }
+
+/* 드래그 선택 (F-06) */
+.drag-root {
+  position: relative;
+}
+
+.drag-rect {
+  position: absolute;
+  border: 2px solid #1b5e20;
+  background: rgb(46 125 50 / 15%);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.cell--apple.cell--selected {
+  outline: 3px solid #ffd54f;
+  outline-offset: -1px;
+  filter: brightness(1.1);
+}
