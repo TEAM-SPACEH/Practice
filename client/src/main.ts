@@ -1,6 +1,7 @@
 // 담당: D (화면 흐름 및 화면 전환 상태 머신). Round 2에서 C·E 모듈을 여기서 연결한다.
 import './style.css';
 import type { ClientToServer, GameEndPayload, GameStartPayload, RoomState } from '@apple/shared';
+import { createBoard, trySelect } from '@apple/shared';
 import { net } from './net';
 import { renderLobby } from './screens/lobby';
 import { renderCountdown, renderRoom } from './screens/room';
@@ -21,6 +22,13 @@ let currentRoom: RoomState | null = null;
 let gameStartData: GameStartPayload | null = null;
 let gameEndData: GameEndPayload | null = null;
 let lobbyErrorMessage: string | undefined = undefined;
+
+// 게임 진행 중 상태 (F-11: 실시간 점수 교환)
+let myScore = 0;
+let oppScore = 0;
+let liveBoard: number[] | null = null;
+// 게임 화면이 떠 있을 때 HUD만 다시 그리는 콜백 (opponent:score 수신 시 사용)
+let repaintGameHud: (() => void) | null = null;
 
 // 화면 정리(cleanup) 콜백
 let cleanupCurrentScreen: (() => void) | null = null;
@@ -192,7 +200,9 @@ function render(): void {
 }
 
 /**
- * 게임 화면 렌더링 (Round 2에서 C의 판 렌더링 및 E의 HUD와 연결)
+ * 게임 화면 렌더링 (F-11: 실제 판 + 드래그 판정 + 실시간 점수 송수신)
+ * - gameStartData 가 있으면 실제 게임 루프를 돌린다.
+ * - 없으면(개발 툴바로 바로 진입) 기존 Mock 플레이스홀더를 보여준다.
  */
 function renderGameScreen(): void {
   root.innerHTML = `
@@ -205,56 +215,85 @@ function renderGameScreen(): void {
   const hudRoot = root.querySelector<HTMLDivElement>('#game-hud')!;
   const boardRoot = root.querySelector<HTMLDivElement>('#game-board')!;
 
-  // 1. HUD 연결 (E 모듈 시도)
-  try {
-    const opp = currentRoom?.players.find((p) => p.id !== myId);
+  if (!gameStartData) {
+    renderGameMockPlaceholder(boardRoot);
+    return;
+  }
+
+  // --- 실제 게임 시작 ---
+  const { seed, startAt, durationMs } = gameStartData;
+  const endAt = startAt + durationMs;
+
+  myScore = 0;
+  oppScore = 0;
+  liveBoard = createBoard(seed); // B(F-03): 같은 시드 → 두 사람 같은 판
+
+  const opp = currentRoom?.players.find((p) => p.id !== myId);
+  const oppName = opp?.nickname || '상대방';
+  let inputLocked = false;
+
+  const paintHud = (): void => {
     renderHud(hudRoot, {
-      remainingMs: 120_000,
-      myScore: 0,
-      oppName: opp?.nickname || '상대방',
-      oppScore: 0,
+      remainingMs: Math.max(0, endAt - Date.now()),
+      myScore,
+      oppName,
+      oppScore,
     });
-  } catch {
-    // E 모듈 구현 전 기본 HUD 플레이스홀더
-    hudRoot.innerHTML = `
-      <div class="card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:16px 24px;">
-        <div style="font-weight:700;">내 점수: <span style="color:#2e7d32; font-size:1.3rem;">0</span></div>
-        <div style="font-size:1.4rem; font-weight:800; color:#d32f2f;">⏱ 02:00</div>
-        <div style="font-weight:700;">상대 점수: <span style="color:#5c6bc0; font-size:1.3rem;">0</span></div>
-      </div>
-    `;
-  }
+  };
+  repaintGameHud = paintHud; // opponent:score 수신 시 외부에서 HUD 갱신
+  paintHud();
 
-  // 2. 보드 렌더링 및 드래그 연결 (C 모듈 시도)
-  try {
-    const dummyBoard = Array.from({ length: 170 }, () => Math.floor(Math.random() * 9) + 1);
-    renderBoard(boardRoot, dummyBoard);
-    const detach = attachDrag(boardRoot, (rect) => {
-      console.log('선택된 영역:', rect);
-    });
-    cleanupCurrentScreen = detach;
-  } catch {
-    // C 모듈 구현 전 플레이스홀더
-    boardRoot.innerHTML = `
-      <div class="card game-placeholder-card">
-        <h3 style="margin-top:0;">🎮 게임 진행 화면 (C 모듈 연동 대기 중)</h3>
-        <p style="color:#666;">C의 board-view.ts 및 drag.ts가 머지되면 이 영역에 17×10 사과 판과 드래그가 표시됩니다.</p>
-        <button type="button" id="btn-mock-end" class="btn btn-primary" style="margin-top:16px;">
-          결과 화면 테스트로 이동 (Mock End)
-        </button>
-      </div>
-    `;
+  renderBoard(boardRoot, liveBoard);
 
-    const btnMockEnd = boardRoot.querySelector<HTMLButtonElement>('#btn-mock-end');
-    btnMockEnd?.addEventListener('click', () => {
-      gameEndData = {
-        scores: { [myId || 'me']: 45, opponent: 38 },
-        winnerId: myId || 'me',
-        reason: 'timeup',
-      };
-      setScreen('result');
-    });
-  }
+  // 드래그 → 합 10 판정(B F-04) → 제거·점수·HUD 갱신 → 서버로 점수 전송
+  const detachDrag = attachDrag(boardRoot, (rect) => {
+    if (inputLocked || !liveBoard) return;
+    const result = trySelect(liveBoard, rect);
+    if (!result.ok) return;
+
+    liveBoard = result.board;
+    myScore += result.cleared.length; // 제거한 사과 개수만큼 +점
+    renderBoard(boardRoot, liveBoard);
+    paintHud();
+    safeEmit('score:update', { score: myScore, cleared: result.cleared });
+  });
+
+  // 타이머: HUD 시간 갱신, 0 이 되면 입력 차단 후 서버의 game:end 를 기다린다 (SPEC 6장)
+  const timer = window.setInterval(() => {
+    paintHud();
+    if (Date.now() >= endAt) {
+      inputLocked = true;
+      window.clearInterval(timer);
+    }
+  }, 250);
+
+  cleanupCurrentScreen = () => {
+    window.clearInterval(timer);
+    detachDrag();
+    repaintGameHud = null;
+  };
+}
+
+/** 실제 게임 데이터 없이 게임 화면을 열었을 때(개발 툴바)용 Mock 화면 */
+function renderGameMockPlaceholder(boardRoot: HTMLDivElement): void {
+  boardRoot.innerHTML = `
+    <div class="card game-placeholder-card">
+      <h3 style="margin-top:0;">🎮 게임 진행 화면 (게임 시작 데이터 없음)</h3>
+      <p style="color:#666;">정상 플레이는 대기실에서 양쪽 "준비" → 카운트다운을 거쳐 진입합니다.</p>
+      <button type="button" id="btn-mock-end" class="btn btn-primary" style="margin-top:16px;">
+        결과 화면 테스트로 이동 (Mock End)
+      </button>
+    </div>
+  `;
+  const btnMockEnd = boardRoot.querySelector<HTMLButtonElement>('#btn-mock-end');
+  btnMockEnd?.addEventListener('click', () => {
+    gameEndData = {
+      scores: { [myId || 'me']: 45, opponent: 38 },
+      winnerId: myId || 'me',
+      reason: 'timeup',
+    };
+    setScreen('result');
+  });
 }
 
 /**
@@ -349,6 +388,12 @@ function setupNetworkListeners(): void {
     net.on('game:start', (payload: GameStartPayload) => {
       gameStartData = payload;
       setScreen('countdown');
+    });
+
+    net.on('opponent:score', ({ score }) => {
+      // 상대 점수 실시간 반영 (SPEC 2장). 게임 화면이면 HUD 갱신
+      oppScore = score;
+      if (currentScreen === 'game' && repaintGameHud) repaintGameHud();
     });
 
     net.on('game:end', (payload: GameEndPayload) => {
