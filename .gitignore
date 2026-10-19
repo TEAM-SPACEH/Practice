@@ -3,3 +3,10 @@ dist/
 .DS_Store
 *.log
 .env
+
+# Python 가상환경 (이 저장소와 무관 — 실수로 커밋 방지)
+.venv/
+Include/
+Lib/
+Scripts/
+pyvenv.cfg

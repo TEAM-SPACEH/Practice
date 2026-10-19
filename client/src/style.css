@@ -1,12 +1,713 @@
+/* 전체 기본 스타일 */
+:root {
+  --color-bg: #f4f8ec;
+  --color-primary: #2e7d32;
+  --color-primary-hover: #1b5e20;
+  --color-secondary: #5c6bc0;
+  --color-secondary-hover: #3f51b5;
+  --color-danger: #d32f2f;
+  --color-warning: #f57c00;
+  --color-surface: #ffffff;
+  --color-text: #212121;
+  --color-text-sub: #666666;
+  --color-border: #e0e0e0;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #f4f8ec;
-  color: #222;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
 }
 
 #app {
-  max-width: 960px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: 32px 16px 64px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 카드 기본 */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 28px;
+  border: 1px solid var(--color-border);
+}
+
+/* 버튼 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: #ebeef5;
+  color: #333;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #dfe3ec;
+}
+
+.btn-success {
+  background: #388e3c;
+  color: #fff;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-lg {
+  font-size: 1.15rem;
+  padding: 14px 28px;
+  border-radius: var(--radius-md);
+}
+
+.btn-outline-sm {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-sub);
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+.btn-outline-sm:hover {
+  background: #f0f0f0;
+  color: var(--color-text);
+}
+
+/* 입력창 */
+.input-text {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 1rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.input-text:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+}
+
+.input-hint {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 6px;
+  color: var(--color-text-sub);
+}
+.text-error {
+  color: var(--color-danger);
+  font-weight: 500;
+}
+
+.alert-error {
+  background: #ffebee;
+  color: #c62828;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #ffcdd2;
+  margin-bottom: 20px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* 뱃지 */
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+.badge-me {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+  margin-left: 6px;
+}
+
+/* =========================================================
+   1. F-07 로비 스타일
+   ========================================================= */
+.lobby-container {
+  max-width: 520px;
+  margin: 20px auto 0;
+  width: 100%;
+}
+
+.lobby-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.game-title {
+  font-size: 2.4rem;
+  margin: 0 0 8px;
+  color: #1b5e20;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.game-subtitle {
+  font-size: 1.05rem;
+  color: var(--color-text-sub);
+  margin: 0;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+.action-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.action-card {
+  background: #fafbf8;
+  border: 1px solid #e8ede0;
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  margin: 0 0 4px;
+  color: #222;
+}
+
+.section-desc {
+  font-size: 0.88rem;
+  color: var(--color-text-sub);
+  margin: 0 0 14px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #999;
+  font-size: 0.85rem;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e0e0e0;
+}
+.divider span {
+  padding: 0 12px;
+}
+
+.join-row {
+  display: flex;
+  gap: 10px;
+}
+.input-code {
+  letter-spacing: 2px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* =========================================================
+   2. F-08 대기실 스타일
+   ========================================================= */
+.room-container {
+  max-width: 680px;
+  margin: 20px auto 0;
+  width: 100%;
+}
+
+.room-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.room-badge {
+  display: inline-block;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.room-code-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  padding: 8px 18px;
+  border-radius: 30px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  margin-bottom: 12px;
+}
+
+.room-code-label {
+  font-size: 0.9rem;
+  color: var(--color-text-sub);
+}
+
+.room-code-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #1b5e20;
+}
+
+.room-notice {
+  font-size: 0.95rem;
+  color: var(--color-text-sub);
+  margin: 0;
+}
+
+.players-grid {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.player-card {
+  flex: 1;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.player-card.ready {
+  border-color: #4caf50;
+  background: #fbfdfb;
+}
+
+.player-card.waiting {
+  border-color: #ffb74d;
+}
+
+.player-card.empty {
+  border-color: #e0e0e0;
+  background: #fafafa;
+  opacity: 0.7;
+}
+
+.player-avatar {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.player-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.player-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-ready {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-waiting {
+  background: #fff8e1;
+  color: #f57f17;
+}
+
+.status-empty {
+  background: #f5f5f5;
+  color: #9e9e9e;
+}
+
+.vs-badge {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #aaa;
+  background: #fff;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+}
+
+.room-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* =========================================================
+   3. F-08 카운트다운 스타일
+   ========================================================= */
+.countdown-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.countdown-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.countdown-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  color: #ffffff;
+}
+
+.countdown-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+.countdown-number {
+  font-size: 8rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffeb3b;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  margin-bottom: 24px;
+}
+
+.countdown-number.pulse {
+  animation: numPulse 0.4s ease-out;
+}
+
+.countdown-number.scale-start {
+  font-size: 6rem;
+  color: #69f0ae;
+  animation: numStart 0.5s ease-out forwards;
+}
+
+@keyframes numPulse {
+  0% {
+    transform: scale(1.6);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes numStart {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.countdown-tip {
+  font-size: 1.1rem;
+  color: #e0e0e0;
+  margin: 0;
+}
+
+/* =========================================================
+   4. F-10 결과 화면 스타일
+   ========================================================= */
+.result-container {
+  max-width: 600px;
+  margin: 24px auto 0;
+  width: 100%;
+}
+
+.result-card {
+  text-align: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.outcome-banner {
+  padding: 24px 16px 20px;
+  border-radius: var(--radius-md);
+  margin-bottom: 28px;
+}
+
+.outcome-win .outcome-banner {
+  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  color: #1b5e20;
+}
+
+.outcome-lose .outcome-banner {
+  background: linear-gradient(135deg, #ffebee, #ffcdd2);
+  color: #b71c1c;
+}
+
+.outcome-draw .outcome-banner {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  color: #0d47a1;
+}
+
+.outcome-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  margin: 0 0 6px;
+}
+
+.outcome-sub {
+  font-size: 1rem;
+  margin: 0 0 12px;
+  opacity: 0.9;
+}
+
+.reason-tag {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.score-board {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.score-player {
+  flex: 1;
+  background: #fbfbfb;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px 16px;
+}
+
+.score-player.winner {
+  border-color: #ffb300;
+  background: #fffdf5;
+  box-shadow: 0 0 12px rgba(255, 179, 0, 0.25);
+}
+
+.score-avatar {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+}
+
+.score-name {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.score-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #222;
+}
+
+.score-unit {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-sub);
+}
+
+.score-vs {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #bbb;
+}
+
+.result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* =========================================================
+   5. 게임 화면 & 개발 테스트 툴바
+   ========================================================= */
+.game-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.game-placeholder-card {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.dev-preview-bar {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(33, 33, 33, 0.88);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 9999;
+}
+
+.dev-preview-bar button {
+  background: #424242;
+  color: #fff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dev-preview-bar button:hover {
+  background: #616161;
+}
+
+.dev-preview-bar button.active {
+  background: var(--color-primary);
+}
+
+/* 판 (F-05) */
+.board {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  gap: 4px;
+  aspect-ratio: calc(var(--cols)) / calc(var(--rows));
+  padding: 12px;
+  background: #cfe8b0;
+  border-radius: 12px;
+  user-select: none;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: clamp(12px, 2.2vw, 20px);
+}
+
+/* 샤인머스켓(연녹색 포도) 알 모형 */
+.cell--apple {
+  background: radial-gradient(circle at 34% 28%, #f0fab0, #c5e35c 45%, #93c12f 88%);
+  color: #33530f;
+  box-shadow:
+    inset 2px 3px 5px rgb(255 255 255 / 50%),
+    inset 0 -3px 4px rgb(60 100 10 / 28%);
+}
+
+.cell--empty {
+  background: transparent;
+}
+
+/* 드래그 선택 (F-06) */
+.drag-root {
+  position: relative;
+}
+
+.drag-rect {
+  position: absolute;
+  border: 2px solid #1b5e20;
+  background: rgb(46 125 50 / 15%);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.cell--apple.cell--selected {
+  outline: 3px solid #ffd54f;
+  outline-offset: -1px;
+  filter: brightness(1.1);
 }
