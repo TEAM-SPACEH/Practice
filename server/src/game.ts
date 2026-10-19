@@ -1,9 +1,80 @@
 // 담당: F (F-13 게임 진행)
+import { CELL_COUNT, COUNTDOWN_MS, DURATION_MS, END_GRACE_MS, MAX_PLAYERS } from '@apple/shared';
+import type { GameEndPayload } from '@apple/shared';
 import type { IO, GameSocket } from './types';
+import { getRoomOf, toRoomState, type Player, type Room } from './store';
 
 /** player:ready / score:update 처리, game:start / opponent:score / game:end 전송 */
 export function registerGameHandlers(io: IO, socket: GameSocket): void {
-  // TODO(F-13): 둘 다 ready → seed + startAt 으로 game:start
-  // TODO(F-13): score:update → 상대에게 opponent:score
-  // TODO(F-13): startAt + durationMs + END_GRACE_MS 에 game:end
+  socket.on('player:ready', () => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.status !== 'waiting') return;
+    const me = room.players.find((p) => p.id === socket.id);
+    if (!me || me.ready) return; // 중복 준비 무시
+
+    me.ready = true;
+    io.to(room.code).emit('room:state', toRoomState(room));
+
+    if (room.players.length === MAX_PLAYERS && room.players.every((p) => p.ready)) {
+      startGame(io, room);
+    }
+  });
+
+  socket.on('score:update', ({ score, cleared }) => {
+    const room = getRoomOf(socket.id);
+    if (!room || room.status !== 'playing') return;
+    const me = room.players.find((p) => p.id === socket.id);
+    if (!me || Date.now() < room.startAt) return; // 카운트다운 중 입력 무시
+    // 치트 방지는 안 하지만, 깨진 값이 상대 화면/결과를 망가뜨리지 않게 형식만 확인
+    if (!Number.isInteger(score) || score < 0 || score > CELL_COUNT) return;
+    const safeCleared = Array.isArray(cleared)
+      ? cleared.filter((i) => Number.isInteger(i) && i >= 0 && i < CELL_COUNT)
+      : [];
+
+    me.score = score;
+    socket.to(room.code).emit('opponent:score', { score, cleared: safeCleared });
+  });
+}
+
+function startGame(io: IO, room: Room): void {
+  room.status = 'playing';
+  for (const p of room.players) p.score = 0;
+
+  const seed = Math.floor(Math.random() * 2 ** 31);
+  const startAt = Date.now() + COUNTDOWN_MS;
+  room.startAt = startAt;
+  io.to(room.code).emit('game:start', { seed, startAt, durationMs: DURATION_MS });
+  console.log(`[game] ${room.code} start seed=${seed}`);
+
+  const delay = Math.max(0, startAt - Date.now()) + DURATION_MS + END_GRACE_MS;
+  room.endTimer = setTimeout(() => endGame(io, room, 'timeup'), delay);
+}
+
+/**
+ * 게임 종료. timeup 이면 점수 비교, opponent-left 면 남은 사람 승리 (leaver = 이미 방에서 빠진 사람).
+ * 끝나면 대기 상태로 되돌려서 다시 "준비"를 누르면 재대결 가능 (F-15).
+ */
+export function endGame(io: IO, room: Room, reason: GameEndPayload['reason'], leaver?: Player): void {
+  if (room.status !== 'playing') return;
+  if (room.endTimer) clearTimeout(room.endTimer);
+  room.endTimer = null;
+
+  const scores: Record<string, number> = {};
+  for (const p of room.players) scores[p.id] = p.score;
+  if (leaver) scores[leaver.id] = leaver.score; // 나간 사람 점수도 결과에 포함
+
+  let winnerId: string | null = null;
+  if (reason === 'opponent-left') {
+    winnerId = room.players[0]?.id ?? null;
+  } else {
+    const [a, b] = room.players;
+    if (a && b && a.score !== b.score) winnerId = a.score > b.score ? a.id : b.id;
+  }
+
+  io.to(room.code).emit('game:end', { scores, winnerId, reason });
+  console.log(`[game] ${room.code} end (${reason}) winner=${winnerId}`);
+
+  room.status = 'waiting';
+  for (const p of room.players) p.ready = false;
+  io.to(room.code).emit('room:state', toRoomState(room));
 }
